@@ -1,7 +1,8 @@
 import hashlib
+import time
 
 def valid_hash(hash, difficulty):
-  for i in range(0, difficulty):
+  for i in range(difficulty):
     if hash[i] != '0': return False 
   return True
 
@@ -22,9 +23,11 @@ def find_golden_nonce(data, difficulty):
 
 # MAIN
 
-data = "COMSM0010"
-difficulty = 4
+data = "COMSM0010cloud"
+difficulty = 7
+start_time = time.time()
 golden_nonce, hash = find_golden_nonce(data, difficulty)
-#TODO: How long did it take?
+processing_time = time.time() - start_time
+print("Processing time: {0:.2f} s.".format(processing_time))
 print("The Golden Nonce is", golden_nonce)
 print("Hash: ", hash)
