@@ -28,6 +28,7 @@ difficulty = 7
 start_time = time.time()
 golden_nonce, hash = find_golden_nonce(data, difficulty)
 processing_time = time.time() - start_time
-print("Processing time: {0:.2f} s.".format(processing_time))
-print("The Golden Nonce is", golden_nonce)
+print("Difficulty: ", difficulty)
+print("Processing time: {0:.4f} s.".format(processing_time))
+print("Golden Nonce is", golden_nonce)
 print("Hash: ", hash)
