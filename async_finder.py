@@ -33,13 +33,6 @@ def sched_task(data, difficulty, index, scale=10000):
   end = start + scale
   return find.delay(data, difficulty, batch, start, end)
 
-def nonce_found(results):
-  for result in results:
-    if result.status == 'SUCCESS':
-      if result.result != None:
-        return result.result
-  return False
-
 def values(results):
   values = []
   for result in results:
@@ -51,34 +44,38 @@ def values(results):
 
 def get_nonce(results):
   for result in results:
-    if result.status == 'SUCCESS' and result.result != None:
+    if result.status == 'SUCCESS' and result.get() != None:
       return result.result
-  return "Not Found"
-
+  return None
 
 if __name__ == '__main__':
   data = "COMSM0010cloud"
-  difficulty = 5
+  difficulty = 6
   N = 3
   golden_nonce = None
   scale = 10000
   batch = 0
   results = deque()
+
+  start_time = time.time()
   
   for i in range(N + 1):
     results.append(sched_task(data, difficulty, batch, scale))
     batch += 1
 
-  while(not nonce_found(results)):
+  while(not golden_nonce):
     finished = 0
     for result in results:
       if result.status == 'SUCCESS':
         finished += 1; break
+        print(values(results))
     for i in range(finished):
       results.popleft()
       results.append(sched_task(data, difficulty, batch, scale))
       batch += 1
+    golden_nonce = get_nonce(results)
 
-    print(values(results))
-
-  print("Golden Nonce: ", get_nonce(results))
+  processing_time = time.time() - start_time
+  print("Difficulty: ", difficulty)
+  print("Processing time: {0:.4f} s.".format(processing_time))
+  print("Golden Nonce is", golden_nonce)
