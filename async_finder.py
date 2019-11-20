@@ -50,16 +50,16 @@ def get_nonce(results):
 
 if __name__ == '__main__':
   data = "COMSM0010cloud"
-  difficulty = 6
-  N = 3
+  difficulty = 8
+  N = 1
   golden_nonce = None
-  scale = 10000
+  scale = 10000000
   batch = 0
   results = deque()
 
   start_time = time.time()
   
-  for i in range(N + 1):
+  for i in range(N + 20):
     results.append(sched_task(data, difficulty, batch, scale))
     batch += 1
 
@@ -69,13 +69,14 @@ if __name__ == '__main__':
       if result.status == 'SUCCESS':
         finished += 1; break
         print(values(results))
+    golden_nonce = get_nonce(results)
     for i in range(finished):
       results.popleft()
       results.append(sched_task(data, difficulty, batch, scale))
       batch += 1
-    golden_nonce = get_nonce(results)
 
   processing_time = time.time() - start_time
   print("Difficulty: ", difficulty)
+  print("N of machines: ", N)
   print("Processing time: {0:.4f} s.".format(processing_time))
   print("Golden Nonce is", golden_nonce)
