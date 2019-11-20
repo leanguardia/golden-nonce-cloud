@@ -68,7 +68,6 @@ if __name__ == '__main__':
     for result in results:
       if result.status == 'SUCCESS':
         finished += 1; break
-        print(values(results))
     golden_nonce = get_nonce(results)
     for i in range(finished):
       results.popleft()
