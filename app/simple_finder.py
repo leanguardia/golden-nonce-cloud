@@ -24,7 +24,7 @@ class NonceFinder(object):
 
 if __name__ == "__main__":
   data = "COMSM0010cloud"
-  difficulty = 5
+  difficulty = 6
   start_time = time.time()
   golden_nonce, hash = NonceFinder().find(data, difficulty)
   processing_time = time.time() - start_time

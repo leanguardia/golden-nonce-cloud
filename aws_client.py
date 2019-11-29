@@ -2,11 +2,11 @@ import boto3
 import logging
 from botocore.exceptions import ClientError
 
-def create_ec2_instance(ec2, image_id, instance_type, keypair_name):
+def create_ec2_instance(ec2, image_id):
   try:
     response = ec2.run_instances(ImageId=image_id,
-                                 InstanceType=instance_type,
-                                 KeyName=keypair_name,
+                                 InstanceType='t2.micro',
+                                 KeyName='aws-macbook13',
                                  SecurityGroups=['launch-wizard-1'],
                                  MinCount=1,
                                  MaxCount=1)
@@ -50,13 +50,11 @@ if __name__ == '__main__':
   # response = ec2.describe_instances()
   # print(response)
 
-  logging.basicConfig(level=logging.DEBUG,
-                      format='%(levelname)s: %(asctime)s: %(message)s')
+  # logging.basicConfig(level=logging.DEBUG,
+  #                     format='%(levelname)s: %(asctime)s: %(message)s')
   
   # Starting and instance
-  # image_id = 'ami-00dc79254d0461090' # Amazon Linux 2 AMI
-  # instance_type = 't2.micro'
-  # keypair_name = 'aws-macbook13'
+  # image_id = 'ami-0b9d1c9679a45115c'
 
   # instance_info = create_ec2_instance(ec2, image_id, instance_type, keypair_name)
   # instance_id = instance_info["InstanceId"]
@@ -68,4 +66,9 @@ if __name__ == '__main__':
 
   stop_ec2_instance(ec2, "i-0b8dc6583cd7eb0c9")
   # restart_ec2_instance(ec2, "i-00de005777c21e700")
-```
+
+  ## aws = AwsClient()
+  ## start_broker()
+  ## start_workers()
+
+  ## Enter loop of crazines
