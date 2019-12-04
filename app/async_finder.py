@@ -2,10 +2,8 @@ from collections import deque
 import hashlib
 import time
 from celery import Celery
-from celery.result import ResultSet
-from celery.task.control import inspect
 
-broker_url = 'amqp://guest:guest@localhost:5672'
+broker_url = 'amqp://guest:guest@rabbit:5672'
 app = Celery('app.async_finder', broker=broker_url, backend='rpc://')
 
 def valid_hash(hash, difficulty):
