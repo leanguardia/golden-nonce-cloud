@@ -1,34 +1,39 @@
-import hashlib
 import time
+from nonce_evaluator import NonceEvaluator 
 
 class NonceFinder(object):
   def find(self, data, difficulty):
     golden_nonce = None
-    nonce = 0
-    while not golden_nonce:
-      hash = self.__digest_hash(data, nonce)
-      if self.__valid_hash(hash, difficulty):
-        golden_nonce = nonce
-      else:
-        nonce = nonce + 1
-    return (golden_nonce, hash)
+    sequence_length = 1
+    max_sequence_length = 32
+    while (not golden_nonce and sequence_length <= max_sequence_length):
+      upper_limit = 2 ** (sequence_length)
+      nonce = 0
+      while (not golden_nonce and nonce < upper_limit):
+        binary_sequence = self.format_sequence(nonce, sequence_length)
+        # print(sequence_length, nonce, binary_sequence)
+  
+        evaluator = NonceEvaluator(data, binary_sequence, difficulty)
+        if (evaluator.valid_nonce()):
+          golden_nonce = binary_sequence
+        nonce +=1
+      sequence_length += 1
+      print(sequence_length, upper_limit, "trails")
+    return (golden_nonce, evaluator.hexdigest)
 
-  def __valid_hash(self, hash, difficulty):
-    for i in range(difficulty):
-      if hash[i] != '0': return False 
-    return True
-
-  def __digest_hash(self, data, nonce):
-    block = (data + str(nonce)).encode("utf-8")
-    return hashlib.sha256(block).hexdigest()
+  def format_sequence(self, nonce, sequence_length):
+    return bin(nonce)[2:].rjust(sequence_length, '0')
 
 if __name__ == "__main__":
   data = "COMSM0010cloud"
-  difficulty = 6
+  difficulty = 7
   start_time = time.time()
-  golden_nonce, hash = NonceFinder().find(data, difficulty)
+
+  binary_sequence, hexdigest = NonceFinder().find(data, difficulty)
   processing_time = time.time() - start_time
   print("Difficulty: ", difficulty)
   print("Processing time: {0:.4f} s.".format(processing_time))
-  print("Golden Nonce is", golden_nonce)
-  print("Hash: ", hash)
+  print("Golden Nonce (Integer):", int(binary_sequence, 2))
+  print("Golden Nonce (Binary):", binary_sequence)
+  print("Length: ", len(binary_sequence))
+  print("Hexdigest", hexdigest)
