@@ -1,4 +1,4 @@
-import time
+import sys, getopt, time
 from nonce_evaluator import NonceEvaluator 
 
 class NonceFinder(object):
@@ -36,17 +36,28 @@ class NonceFinder(object):
   def binary_format(self, nonce):
     return bin(nonce)[2:]
 
+def arguments(argv, difficulty=None, data="COMSM0010cloud"):
+  try: opts, args = getopt.getopt(argv[1:], "hd:a:", ["difficulty=","data="])
+  except getopt.GetoptError:
+    print('simple_finder.py -d <difficulty> -a <data>')
+    sys.exit(2)
+  for opt, arg in opts:
+    if opt == '-h':
+      print('simple_finder.py -d <difficulty> -a <data>')
+      sys.exit()
+    elif opt in ("-d", "--difficulty"): difficulty = int(arg)
+    elif opt in ("-a", "--data"): data = arg
+  return (difficulty, data) 
+
 if __name__ == "__main__":
-  difficulty = 8
-  data = "COMSM0010cloud"
+  difficulty, data = arguments(sys.argv)
+  print("Data:", data, "| Difficulty:", difficulty)
 
   start_time = time.time()
-
   binary_sequence, hexdigest = NonceFinder().find_by_zero_prepend(data, difficulty)
   processing_time = time.time() - start_time
-  print("Difficulty: ", difficulty)
-  print("Golden Nonce (Integer):", int(binary_sequence, 2))
-  print("Golden Nonce (Binary):", binary_sequence, "|", len(binary_sequence))
+  nonce = int(binary_sequence, 2)
+  print("Golden Nonce:", nonce, "|", binary_sequence +"("+str(len(binary_sequence))+")")
   print("Processing time: {0:.3f} s.".format(processing_time))
   print("Hexdigest", hexdigest)
 
