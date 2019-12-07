@@ -37,19 +37,17 @@ class Sqs(object):
       AttributeNames=['All'],
       MaxNumberOfMessages=1,
       MessageAttributeNames=['All'],
-      WaitTimeSeconds=1
+      WaitTimeSeconds=0,
     )
-    if not 'Messages' in response: print("-> NO MESSAGES!!!")
+    if not 'Messages' in response: print("-> NO MESSAGES FOUND!!!")
     return self.__build_task(response['Messages'][0])
 
-  # def complete_task(self, message_id):
-  #   sqs.delete_message(
-  #       QueueUrl=tasks_queue_url,
-  #       ReceiptHandle=receipt_handle
-  #   )
-
-  # def delete_task(receipt_handle):
-  #   self.client()
+  def complete_task(self, task):
+    response = self.client.delete_message(
+      QueueUrl=self.tasks_queue_url,
+      ReceiptHandle=task['ReceiptHandle']
+    )
+    print(response)
 
   def purge_all(self):
     print("--> Purging Queues")
@@ -57,15 +55,13 @@ class Sqs(object):
 
   def __build_task(self, message):
     attributes = message['MessageAttributes']
-    # print(message['MessageAttributes'])
-    print(message['MessageId'])
     return {
       'Body': message['Body'],
       'SearchFrom': attributes['SearchFrom']['StringValue'],
       'SearchTo': attributes['SearchTo']['StringValue'],
       'Difficulty': attributes['Difficulty']['StringValue'],
       'Data': attributes['Data']['StringValue'],
-      'MessageID': message['MessageId'],
+      'ReceiptHandle': message['ReceiptHandle'],
     }
 
 if __name__ == "__main__":
@@ -89,8 +85,8 @@ if __name__ == "__main__":
   print("SearchTo", task["SearchTo"])
   print("Difficulty", task["Difficulty"])
   print("Data", task["Data"])
-  print("MessageId", task["MessageID"])
-  # sps.delete_task(task)
+  print("ReceiptHandle", task["ReceiptHandle"])
+  sqs.complete_task(task)
 
   # sqs.stop_search()
   # sqs.complete_task()
