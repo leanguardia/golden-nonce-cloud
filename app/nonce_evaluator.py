@@ -17,7 +17,7 @@ class NonceEvaluator(object):
     return (int(self.binary_sequence, 2), self.binary_sequence)
 
   def __sha_squared(self):
-    block = (self.data + self.binary_sequence).encode()
+    block = (self.data + self.binary_sequence).encode("utf-8")
     sha_1 = hashlib.sha256(block)
     return hashlib.sha256(sha_1.digest())
 
