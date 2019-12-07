@@ -43,6 +43,8 @@ class Sqs(object):
         WaitTimeSeconds=1,
       )
       if 'Messages' in response: message = response['Messages'][0]
+      if attempt_num > 1: print("Receive Message Attempt:", attempt_num)
+      attempt_num += 1
     return self.__build_task(response['Messages'][0])
 
   def complete_task(self, task):
@@ -50,7 +52,6 @@ class Sqs(object):
       QueueUrl=self.tasks_queue_url,
       ReceiptHandle=task['ReceiptHandle']
     )
-    print(response)
 
   def purge_all(self):
     print("--> Purging Queues")
@@ -73,7 +74,7 @@ if __name__ == "__main__":
   sqs = Sqs()
 
   batch_size = 100
-  num_of_tasks = 10
+  num_of_tasks = 100
 
   # for task_index in range(num_of_tasks):
   #   search_from = task_index * batch_size
@@ -81,14 +82,13 @@ if __name__ == "__main__":
   #   sqs.create_task(data, difficulty, (search_from, search_to))
 
   task = sqs.next_task()
-  print(task)
 
   print("Body", task["Body"])
   print("SearchFrom", task["SearchFrom"])
   print("SearchTo", task["SearchTo"])
   print("Difficulty", task["Difficulty"])
   print("Data", task["Data"])
-  print("ReceiptHandle", task["ReceiptHandle"])
+  # print("ReceiptHandle", task["ReceiptHandle"])
   sqs.complete_task(task)
 
   # sqs.stop_search()
