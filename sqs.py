@@ -31,15 +31,18 @@ class Sqs(object):
     MessageGroupId=("UniqueID")
   )
 
-  def next_task(self):
-    response = self.client.receive_message(
-      QueueUrl=self.tasks_queue_url,
-      AttributeNames=['All'],
-      MaxNumberOfMessages=1,
-      MessageAttributeNames=['All'],
-      WaitTimeSeconds=0,
-    )
-    if not 'Messages' in response: print("-> NO MESSAGES FOUND!!!")
+  def next_task(self, max_retries=9):
+    message = None
+    attempt_num = 1
+    while(not message and attempt_num <= max_retries):
+      response = self.client.receive_message(
+        QueueUrl=self.tasks_queue_url,
+        AttributeNames=['All'],
+        MaxNumberOfMessages=1,
+        MessageAttributeNames=['All'],
+        WaitTimeSeconds=1,
+      )
+      if 'Messages' in response: message = response['Messages'][0]
     return self.__build_task(response['Messages'][0])
 
   def complete_task(self, task):
