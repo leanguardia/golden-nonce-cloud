@@ -47,7 +47,7 @@ def arguments(argv, difficulty=None, data="COMSM0010cloud"):
       sys.exit()
     elif opt in ("-d", "--difficulty"): difficulty = int(arg)
     elif opt in ("-a", "--data"): data = arg
-  return (difficulty, data) 
+  return (difficulty, data)
 
 if __name__ == "__main__":
   difficulty, data = arguments(sys.argv)
