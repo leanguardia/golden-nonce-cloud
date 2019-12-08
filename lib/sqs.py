@@ -11,7 +11,7 @@ class Sqs(object):
     search_from, search_to = search_range
     response = self.client.send_message(
     QueueUrl=self.tasks_queue_url,
-    MessageBody=(f"Diff {difficulty}: {search_from} - {search_to}"),
+    MessageBody=(f"D-{difficulty}: Search in {search_from} - {search_to}"),
     MessageAttributes={
         'Data': {
             'DataType': 'String',
@@ -122,6 +122,13 @@ class Sqs(object):
         },
       },
     )
+  
+  def approx_num_of_tasks(self):
+    response = self.client.get_queue_attributes(
+      QueueUrl=self.tasks_queue_url,
+      AttributeNames=['ApproximateNumberOfMessages']
+    )
+    return int(response['Attributes']['ApproximateNumberOfMessages'])
 
   def __send_stop_message(self, message_body, message_attributes):
     return self.client.send_message(
@@ -175,8 +182,10 @@ if __name__ == "__main__":
   # sqs.delete_task_message(task)
 
   # sqs.nonce_found(39, "00010101010")
+  # sqs.purge_all()
   
   # sqs.stop_search()
 
-  sqs.emergency_scram()
-  # sqs.purge_all()
+  # sqs.emergency_scram()
+  print(sqs.approx_num_of_tasks())
+  
