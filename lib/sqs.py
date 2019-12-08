@@ -1,4 +1,5 @@
 import boto3
+import datetime
 
 class Sqs(object):
   def __init__(self):
@@ -48,9 +49,15 @@ class Sqs(object):
       attempt_num += 1
     return self.__parse_task(response['Messages'][0]) if message else False
 
-  def delete_message(self, receive_handle):
-    response = self.client.delete_message(
+  def delete_task_message(self, receive_handle):
+    self.client.delete_message(
       QueueUrl=self.tasks_queue_url,
+      ReceiptHandle=receive_handle
+    )
+
+  def delete_stop_message(self, receive_handle):
+    self.client.delete_message(
+      QueueUrl=self.stop_search_queue_url,
       ReceiptHandle=receive_handle
     )
 
@@ -105,6 +112,25 @@ class Sqs(object):
       MessageGroupId=("UniqueID")
     )
 
+  def emergency_scram(self):
+    response = self.__send_stop_message(
+      message_body=f"Emergency Scram, stoping all workers {datetime.datetime.now()}!",
+      message_attributes={
+        'StopReason': {
+          'DataType': 'String',
+          'StringValue': "EmergencyScram"
+        },
+      },
+    )
+
+  def __send_stop_message(self, message_body, message_attributes):
+    return self.client.send_message(
+      QueueUrl=self.stop_search_queue_url,
+      MessageBody=(message_body),
+      MessageAttributes=message_attributes,
+      MessageGroupId=("UniqueID"),
+    )
+
   def __parse_task(self, message):
     attributes = message['MessageAttributes']
     return {
@@ -118,14 +144,17 @@ class Sqs(object):
 
   def __parse_stop_message(self, message):
     attributes = message['MessageAttributes']
-    return {
+    stop_reason = attributes['StopReason']['StringValue']
+    message = {
       'Body': message['Body'],
       'ReceiptHandle': message['ReceiptHandle'],
-      'StopReason': attributes['StopReason']['StringValue'],
-      'Nonce': int(attributes['Nonce']['StringValue']),
-      'BinarySequence': attributes['BinarySequence']['StringValue'],
-      'Hexdigest': attributes['Hexdigest']['StringValue'],
+      'StopReason': stop_reason,
     }
+    if stop_reason == "NonceFound":
+      message['Nonce'] = int(attributes['Nonce']['StringValue'])
+      message['BinarySequence'] = attributes['BinarySequence']['StringValue']
+      message['Hexdigest'] = attributes['Hexdigest']['StringValue']
+    return message
 
 if __name__ == "__main__":
   # data = "CLOUDSMSlalala"
@@ -143,9 +172,11 @@ if __name__ == "__main__":
   # task = sqs.next_task()
   # print(task)
   
-  # sqs.complete_task(task)
+  # sqs.delete_task_message(task)
 
   # sqs.nonce_found(39, "00010101010")
   
   # sqs.stop_search()
-  sqs.purge_all()
+
+  sqs.emergency_scram()
+  # sqs.purge_all()

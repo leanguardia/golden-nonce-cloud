@@ -23,12 +23,13 @@ if __name__ == "__main__":
   # print("Data:", data, "| Difficulty:", difficulty)
 
   data = 'COMSM0010cloud'
-  difficulty = 5
+  difficulty = 6
   sqs = Sqs()
-  sqs.purge_all()
+  # sqs.purge_all()
+  # sqs.purge_tasks_queue()
   
   batch_size = 10000
-  num_of_tasks = 10
+  num_of_tasks = 20
 
   for task_index in range(num_of_tasks):
     search_from = task_index * batch_size
@@ -57,7 +58,7 @@ if __name__ == "__main__":
           binary_sequence = "0" + binary_sequence
         nonce += 1
 
-      sqs.delete_message(task["ReceiptHandle"])
+      sqs.delete_task_message(task["ReceiptHandle"])
       stop_message = sqs.stop_search(max_retries=2)
       if stop_message != False: searching = False
     else:
@@ -65,17 +66,21 @@ if __name__ == "__main__":
       searching = False
   
   processing_time = time.time() - start_time
+  stop_reason = stop_message["StopReason"] 
+  print("-->", stop_reason)
   print(stop_message["Body"])
-  if stop_message["StopReason"] == "NonceFound":
+  if stop_reason == "NonceFound":
     nonce = stop_message["Nonce"]
     binary_sequence = stop_message["BinarySequence"]
     hexdigest = stop_message["Hexdigest"]
-
     print("Golden Nonce:", nonce, "|", binary_sequence +"("+ str(len(binary_sequence)) +")")
     print("Processing time: {0:.3f} s.".format(processing_time))
     print("Hexdigest", hexdigest)
+  elif stop_reason == "EmergencyScram":
+    print("Call 999!")
   
-  sqs.delete_message(task["ReceiptHandle"])
+  sqs.delete_stop_message(stop_message["ReceiptHandle"])
+  
   # sqs.purge_stop_queue()
   # sqs.purge_all()
 
