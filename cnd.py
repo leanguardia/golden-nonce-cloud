@@ -1,14 +1,7 @@
 import time
+from worker import Worker
 from lib.sqs import Sqs
 from app.nonce_evaluator import NonceEvaluator
-
-def unwrap_task(task):
-  return (
-    task["SearchFrom"],
-    task["SearchTo"],
-    task["Difficulty"],
-    task["Data"]
-  )
 
 def unwrap_golden(message):
   return (
@@ -18,55 +11,55 @@ def unwrap_golden(message):
     task["Data"],
   )
 
+def send_tasks_batch(sqs, task_index, batch_size, num_of_tasks, difficulty, data):
+  batch_number = int(task_index / num_of_tasks) + 1
+  starting_at = task_index * batch_size
+  tasks_per_batch = num_of_tasks * batch_size
+  ending_at = batch_number * tasks_per_batch - 1
+  print(f"Batch {batch_number} | {num_of_tasks} tasks of size {batch_size} from {starting_at} to {ending_at}")
+  for index in range(task_index, task_index + num_of_tasks):
+    search_from = index * batch_size
+    search_to = search_from + batch_size - 1
+    # sqs.send_task(data, difficulty, (search_from, search_to))
+  return task_index + num_of_tasks
+
 if __name__ == "__main__":
   # difficulty, data = arguments(sys.argv)
   # print("Data:", data, "| Difficulty:", difficulty)
 
   data = 'COMSM0010cloud'
-  difficulty = 6
+  difficulty = 5
+
+  # SETUP QUEUES
   sqs = Sqs()
-  # sqs.purge_all()
+  # sqs.purge_all()  CREATE
   # sqs.purge_tasks_queue()
   
+
+  # CREATE FIRST BATCH
+  task_index = 0
+  num_of_tasks = 100
   batch_size = 10000
-  num_of_tasks = 20
+  threshold = 50
 
-  for task_index in range(num_of_tasks):
-    search_from = task_index * batch_size
-    search_to = search_from + batch_size - 1
-    print("Sending:", search_from, search_to)
-    sqs.send_task(data, difficulty, (search_from, search_to))
+  task_index = send_tasks_batch(sqs, task_index, batch_size, num_of_tasks, difficulty, data)
 
-  searching = True
   start_time = time.time()
-  max_sequence_length = 32
+  searching = True
 
-  while(searching):
-    task = sqs.poll_task(max_retries=3)
-    if task:
-      nonce, search_to, difficulty, data = unwrap_task(task)
-      print(task["Body"])
-      
-      while(searching and nonce <= search_to):
-        binary_sequence = bin(nonce)[2:]
-        
-        while (searching and len(binary_sequence) <= max_sequence_length):
-          evaluator = NonceEvaluator(data, binary_sequence, difficulty)
-          if (evaluator.valid_nonce()):
-            sqs.publish_golden_nonce(nonce, binary_sequence, evaluator.hexdigest)
-            searching = False
-          binary_sequence = "0" + binary_sequence
-        nonce += 1
+  while searching:
+    tasks_in_queue = sqs.approx_num_of_tasks()
+    print("Tasks in queue:", tasks_in_queue)
+    if tasks_in_queue < threshold:
+      task_index = send_tasks_batch(sqs, task_index, batch_size, num_of_tasks, difficulty, data)
 
-      sqs.delete_task_message(task["ReceiptHandle"])
-      stop_message = sqs.stop_search(max_retries=2)
-      if stop_message != False: searching = False
-    else:
-      print("No tasks to fulfill")
+    stop_message = sqs.stop_search(max_retries=1)
+    if stop_message:
       searching = False
-  
+
   processing_time = time.time() - start_time
-  stop_reason = stop_message["StopReason"] 
+
+  stop_reason = stop_message["StopReason"]
   print("-->", stop_reason)
   print(stop_message["Body"])
   if stop_reason == "NonceFound":
