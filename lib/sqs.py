@@ -5,7 +5,7 @@ class Sqs(object):
   def __init__(self):
     self.tasks_queue_url = 'https://sqs.us-east-1.amazonaws.com/398055134224/nonce-search-tasks.fifo'
     self.stop_search_queue_url  = 'https://sqs.us-east-1.amazonaws.com/398055134224/stop-search.fifo'
-    self.client = boto3.client('sqs')
+    self.client = boto3.client('sqs', region_name="us-east-1")
 
   def send_task(self, data, difficulty, search_range):
     search_from, search_to = search_range
