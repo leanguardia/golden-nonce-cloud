@@ -1,11 +1,10 @@
 import datetime
 from lib.sqs import Sqs
 from app.nonce_evaluator import NonceEvaluator
+import os
 
 class Worker(object):
   def run(self):
-    print("Start searching at", datetime.datetime.now())
-
     sqs = Sqs()
     searching = True
     max_sequence_length = 32
@@ -34,8 +33,6 @@ class Worker(object):
         print("No tasks to fulfill")
         searching = False
     # report what I've done
-    print("Stoped searching at", datetime.datetime.now())
-
     print("I'm leaving, no purpose in life!")
 
   def unwrap_task(self, task):
@@ -47,5 +44,8 @@ class Worker(object):
     )
 
 if __name__ == "__main__":
-  worker = Worker()
-  worker.run()
+  print("Start searching at", datetime.datetime.now())
+  Worker().run()
+  print("Stoped searching at", datetime.datetime.now())
+  print("Shutting Down")
+  os.system("shutdown /s /t 1")
