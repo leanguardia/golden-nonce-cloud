@@ -1,6 +1,7 @@
 import time
 from worker import Worker
-from lib.sqs import sqs.Sqs
+from lib.sqs import Sqs
+from lib.tasks_queue import TasksQueue
 from app.nonce_evaluator import NonceEvaluator
 
 def unwrap_golden(message):
@@ -11,18 +12,18 @@ def unwrap_golden(message):
     task["Data"],
   )
 
-def send_tasks_batch(sqs, task_index, batch_size, num_of_tasks, difficulty, data):
-  start_time = time.time()
-  batch_number = int(task_index / num_of_tasks) + 1
-  starting_at = task_index * batch_size
-  tasks_per_batch = num_of_tasks * batch_size
-  ending_at = batch_number * tasks_per_batch - 1
-  for index in range(task_index, task_index + num_of_tasks):
-    search_from = index * batch_size
-    search_to = search_from + batch_size - 1
-    sqs.send_task(data, difficulty, (search_from, search_to))
-  print(f"Batch {batch_number} | {num_of_tasks} tasks of size {batch_size} from {starting_at} to {ending_at} in {time.time() - start_time} seconds.")
-  return task_index + num_of_tasks
+# def send_tasks_batch(sqs, task_index, num_of_tests, num_of_tasks, difficulty, data):
+#   start_time = time.time()
+#   batch_number = int(task_index / num_of_tasks) + 1
+#   starting_at = task_index * num_of_tests
+#   tasks_per_batch = num_of_tasks * num_of_tests
+#   ending_at = batch_number * tasks_per_batch - 1
+#   for index in range(task_index, task_index + num_of_tasks):
+#     search_from = index * num_of_tests
+#     search_to = search_from + num_of_tests - 1
+#     sqs.send_task(data, difficulty, (search_from, search_to))
+#   print(f"Batch {batch_number} | {num_of_tasks} tasks of size {num_of_tests} from {starting_at} to {ending_at} in {time.time() - start_time} seconds.")
+#   return task_index + num_of_tasks
 
 if __name__ == "__main__":
   # difficulty, data = arguments(sys.argv)
@@ -32,29 +33,42 @@ if __name__ == "__main__":
   difficulty = 7
 
   # SETUP QUEUES
+  tasks_queue = TasksQueue()
   sqs = Sqs()
   # sqs.purge_all() # CREATE
   # sqs.purge_tasks_queue()
   
 
   # CREATE FIRST BATCH
-  task_index = 0
-  num_of_tasks = 15
-  batch_size = 10000
+
+  batch_index = 0
+  num_of_tests = 10000
   threshold = 11
 
-  task_index = send_tasks_batch(sqs, task_index, batch_size, num_of_tasks, difficulty, data)
+  num_of_tasks = 30
+  num_of_batches = int(num_of_tasks / 10)
+
+  print(f"Sending {num_of_batches} batches of 10 tasks")
+  for index in range(num_of_batches):
+    response = tasks_queue.send_ten_tasks(data, difficulty, batch_index, num_of_tests)
+    batch_index += 1
+
+  num_of_tasks = 20
+  num_of_batches = int(num_of_tasks / 10)
 
   start_time = time.time()
   searching = True
 
   while searching:
-    print("About to request num of tasks")
-    tasks_in_queue = sqs.approx_num_of_tasks() # do this every now and then
+    print("Check: N tasks")
+    tasks_in_queue = tasks_queue.approx_num_of_tasks() # do this every now and then
     print("Tasks in queue:", tasks_in_queue)
     if tasks_in_queue < threshold:
-      task_index = send_tasks_batch(sqs, task_index, batch_size, num_of_tasks, difficulty, data)
+      for index in range(num_of_batches):
+        response = tasks_queue.send_ten_tasks(data, difficulty, batch_index, num_of_tests)
+        batch_index += 1
 
+    print("Check: Stop Queue")
     stop_message = sqs.stop_search(max_retries=1)
     if stop_message:
       searching = False
