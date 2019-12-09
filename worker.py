@@ -27,7 +27,7 @@ class Worker(object):
           nonce += 1
 
         sqs.delete_task_message(task["ReceiptHandle"])
-        stop_message = sqs.stop_search(max_retries=2)
+        stop_message = sqs.stop_search(max_retries=1)
         if stop_message != False: searching = False
       else:
         print("No tasks to fulfill")
@@ -48,4 +48,4 @@ if __name__ == "__main__":
   Worker().run()
   print("Stoped searching at", datetime.datetime.now())
   print("Shutting Down")
-  os.system("shutdown /s /t 1")
+  # os.system("shutdown /s /t 1")
