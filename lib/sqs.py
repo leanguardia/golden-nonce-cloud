@@ -1,85 +1,64 @@
 import boto3
 import datetime
+import time
 
 class Sqs(object):
   def __init__(self):
-    self.tasks_queue_url = 'https://sqs.us-east-1.amazonaws.com/398055134224/nonce-search-tasks.fifo'
-    self.stop_search_queue_url  = 'https://sqs.us-east-1.amazonaws.com/398055134224/stop-search.fifo'
+    self.queue_url  = 'https://sqs.us-east-1.amazonaws.com/398055134224/stop-search.fifo'
     self.client = boto3.client('sqs', region_name="us-east-1")
-
-  def send_task(self, data, difficulty, search_range):
-    search_from, search_to = search_range
-    response = self.client.send_message(
-    QueueUrl=self.tasks_queue_url,
-    MessageBody=(f"D-{difficulty}: Search in {search_from} - {search_to}"),
-    MessageAttributes={
-        'Data': {
-            'DataType': 'String',
-            'StringValue': data
-        },
-        'Difficulty': {
-            'DataType': 'Number',
-            'StringValue': str(difficulty)
-        },
-        'SearchFrom': {
-            'DataType': 'Number',
-            'StringValue': str(search_from)
-        },
-        'SearchTo': {
-            'DataType': 'Number',
-            'StringValue': str(search_to)
-        }
-    },
-    MessageGroupId=("UniqueID")
-  )
-
-  def poll_task(self, max_retries=9):
-    message = None
-    attempt_num = 1
-    while(not message and attempt_num <= max_retries):
-      if attempt_num > 1: print("Receive Message Attempt (Poll):", attempt_num)
-      response = self.client.receive_message(
-        QueueUrl=self.tasks_queue_url,
-        AttributeNames=['All'],
-        MaxNumberOfMessages=1,
-        MessageAttributeNames=['All'],
-        WaitTimeSeconds=1,
-      )
-      if 'Messages' in response: message = response['Messages'][0]
-      attempt_num += 1
-    return self.__parse_task(response['Messages'][0]) if message else False
 
   def delete_stop_message(self, receive_handle):
     self.client.delete_message(
-      QueueUrl=self.stop_search_queue_url,
+      QueueUrl=self.queue_url,
       ReceiptHandle=receive_handle
     )
 
   def purge_stop_queue(self):
-    self.client.purge_queue(QueueUrl=self.stop_search_queue_url)
+    self.client.purge_queue(QueueUrl=self.queue_url)
 
   def stop_search(self, max_retries=3):
-    print("Stop?")
     message = None
     attempt_num = 1
     while(not message and attempt_num <= max_retries):
       if attempt_num > 1: print("Receive Message Attempt (Stop):", attempt_num)
       response = self.client.receive_message(
-        QueueUrl=self.stop_search_queue_url,
-        AttributeNames=['All'],
-        MaxNumberOfMessages=1,
-        MessageAttributeNames=['All'],
-        WaitTimeSeconds=1,
+        QueueUrl = self.queue_url,
+        AttributeNames = ['All'],
+        MaxNumberOfMessages = 1,
+        MessageAttributeNames = ['All'],
+        WaitTimeSeconds = 0,
       )
       if 'Messages' in response: message = response['Messages'][0]
       attempt_num += 1
     return self.__parse_stop_message(response['Messages'][0]) if message else False
 
-  def publish_golden_nonce(self, nonce, binary_sequence, hexdigest):
-    response = self.client.send_message(
-      QueueUrl=self.stop_search_queue_url,
-      MessageBody=(f"Golden {nonce}: {binary_sequence}|({len(binary_sequence)})"),
-      MessageAttributes={
+  def send_golden_nonce(self, nonce, binary_sequence, hexdigest):
+    self.__send_ten_times(
+      self.__build_golden_nonce_message(nonce, binary_sequence, hexdigest)
+    )
+
+  def emergency_scram(self):
+    response = self.__send_stop_message(
+      message_body=f"Emergency Scram, stoping all workers {datetime.datetime.now()}!",
+      message_attributes={
+        'StopReason': {
+          'DataType': 'String',
+          'StringValue': "EmergencyScram"
+        },
+      },
+    )
+
+  def __send_ten_times(self, message):
+    response = self.client.send_message_batch(
+      QueueUrl = self.queue_url,
+      Entries = list(self.__make_unique(message, index) for index in range(10))
+    )
+    # print(response)
+
+  def __build_golden_nonce_message(self, nonce, binary_sequence, hexdigest):
+    return {
+      'MessageBody': (f"Golden {nonce}: {binary_sequence}|({len(binary_sequence)})"),
+      'MessageAttributes': {
           'StopReason': {
             'DataType': 'String',
             'StringValue': "NonceFound"
@@ -97,38 +76,22 @@ class Sqs(object):
             'StringValue': hexdigest
           },
       },
-      MessageGroupId=("UniqueID")
-    )
+      'MessageGroupId': ("UniqueID")
+    }
 
-  def emergency_scram(self):
-    response = self.__send_stop_message(
-      message_body=f"Emergency Scram, stoping all workers {datetime.datetime.now()}!",
-      message_attributes={
-        'StopReason': {
-          'DataType': 'String',
-          'StringValue': "EmergencyScram"
-        },
-      },
-    )
+  def __make_unique(self, message, identifier):
+    copy = message.copy()
+    copy['Id'] = str(identifier)
+    copy['MessageBody'] += " " + str(datetime.datetime.now())
+    return copy
 
   def __send_stop_message(self, message_body, message_attributes):
     return self.client.send_message(
-      QueueUrl=self.stop_search_queue_url,
+      QueueUrl=self.queue_url,
       MessageBody=(message_body),
       MessageAttributes=message_attributes,
       MessageGroupId=("UniqueID"),
     )
-
-  def __parse_task(self, message):
-    attributes = message['MessageAttributes']
-    return {
-      'Body': message['Body'],
-      'ReceiptHandle': message['ReceiptHandle'],
-      'SearchFrom': int(attributes['SearchFrom']['StringValue']),
-      'SearchTo': int(attributes['SearchTo']['StringValue']),
-      'Difficulty': int(attributes['Difficulty']['StringValue']),
-      'Data': attributes['Data']['StringValue'],
-    }
 
   def __parse_stop_message(self, message):
     attributes = message['MessageAttributes']
@@ -158,10 +121,10 @@ if __name__ == "__main__":
   #   sqs.create_task(data, difficulty, (search_from, search_to))
   # print(task)
 
-  # sqs.nonce_found(39, "00010101010")
+  sqs.send_golden_nonce(39, "00010101010", "000002341234sdfkjadlfjasdlfkj")
   # sqs.purge_all()
   
   # sqs.stop_search()
 
-  sqs.emergency_scram()
+  # sqs.emergency_scram()
   
