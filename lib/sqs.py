@@ -61,13 +61,6 @@ class Sqs(object):
       ReceiptHandle=receive_handle
     )
 
-  def purge_all(self):
-    self.purge_tasks_queue()
-    self.purge_stop_queue()
-
-  def purge_tasks_queue(self):
-    self.client.purge_queue(QueueUrl=self.tasks_queue_url)
-
   def purge_stop_queue(self):
     self.client.purge_queue(QueueUrl=self.stop_search_queue_url)
 
@@ -122,13 +115,6 @@ class Sqs(object):
         },
       },
     )
-  
-  def approx_num_of_tasks(self):
-    response = self.client.get_queue_attributes(
-      QueueUrl=self.tasks_queue_url,
-      AttributeNames=['ApproximateNumberOfMessages']
-    )
-    return int(response['Attributes']['ApproximateNumberOfMessages'])
 
   def __send_stop_message(self, message_body, message_attributes):
     return self.client.send_message(
@@ -186,6 +172,5 @@ if __name__ == "__main__":
   
   # sqs.stop_search()
 
-  # sqs.emergency_scram()
-  print(sqs.approx_num_of_tasks())
+  sqs.emergency_scram()
   

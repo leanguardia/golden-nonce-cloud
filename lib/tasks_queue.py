@@ -26,6 +26,9 @@ class TasksQueue(object):
       AttributeNames=['ApproximateNumberOfMessages']
     )
     return int(response['Attributes']['ApproximateNumberOfMessages'])
+  
+  def purge(self):
+    self.client.purge_queue(QueueUrl=self.queue_url)
 
   def build_message(self, data, difficulty, index, search_from, search_to):
     return {
