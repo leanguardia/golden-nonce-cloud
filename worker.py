@@ -27,7 +27,7 @@ class Worker(object):
             while (searching and len(binary_sequence) <= max_sequence_length):
               evaluator = NonceEvaluator(data, binary_sequence, difficulty)
               if (evaluator.valid_nonce()):
-                sqs.publish_golden_nonce(nonce, binary_sequence, evaluator.hexdigest)
+                sqs.send_golden_nonce(nonce, binary_sequence, evaluator.hexdigest)
                 searching = False
               binary_sequence = "0" + binary_sequence
             nonce += 1
