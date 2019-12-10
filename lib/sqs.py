@@ -49,12 +49,6 @@ class Sqs(object):
       attempt_num += 1
     return self.__parse_task(response['Messages'][0]) if message else False
 
-  def delete_task_message(self, receive_handle):
-    self.client.delete_message(
-      QueueUrl=self.tasks_queue_url,
-      ReceiptHandle=receive_handle
-    )
-
   def delete_stop_message(self, receive_handle):
     self.client.delete_message(
       QueueUrl=self.stop_search_queue_url,
@@ -65,6 +59,7 @@ class Sqs(object):
     self.client.purge_queue(QueueUrl=self.stop_search_queue_url)
 
   def stop_search(self, max_retries=3):
+    print("Stop?")
     message = None
     attempt_num = 1
     while(not message and attempt_num <= max_retries):
@@ -161,11 +156,7 @@ if __name__ == "__main__":
   #   search_from = task_index * batch_size
   #   search_to = search_from + batch_size - 1
   #   sqs.create_task(data, difficulty, (search_from, search_to))
-
-  # task = sqs.next_task()
   # print(task)
-  
-  # sqs.delete_task_message(task)
 
   # sqs.nonce_found(39, "00010101010")
   # sqs.purge_all()

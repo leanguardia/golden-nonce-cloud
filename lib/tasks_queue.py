@@ -14,10 +14,7 @@ class TasksQueue(object):
       print(search_from, search_to)
       messages.append(self.build_message(data, difficulty, index, search_from, search_to))
 
-    response = self.client.send_message_batch(
-      QueueUrl = self.queue_url,
-      Entries = messages
-    )
+    response = self.client.send_message_batch(QueueUrl = self.queue_url, Entries = messages)
     return response
   
   def approx_num_of_tasks(self):
@@ -47,6 +44,9 @@ class TasksQueue(object):
 
   def purge(self):
     self.client.purge_queue(QueueUrl=self.queue_url)
+
+  def delete_message(self, receipt_handle):
+    self.client.delete_message(QueueUrl=self.queue_url, ReceiptHandle=receipt_handle)
 
   def build_message(self, data, difficulty, index, search_from, search_to):
     return {
@@ -89,16 +89,16 @@ if __name__ == "__main__":
   difficulty = 7
   task_queue = TasksQueue()
 
-  # batch_index = 0
-  # num_of_tasks = 30
-  # num_of_tests = 10000
+  batch_index = 0
+  num_of_tasks = 10
+  num_of_tests = 10000
 
-  # num_of_batches = int(num_of_tasks / 10)
-  # for index in range(num_of_batches):
-  #   response = task_queue.send_ten_tasks(data, difficulty, batch_index, num_of_tests)
-  #   batch_index += 1
+  num_of_batches = int(num_of_tasks / 10)
+  for index in range(num_of_batches):
+    response = task_queue.send_ten_tasks(data, difficulty, batch_index, num_of_tests)
+    batch_index += 1
 
-  tasks = task_queue.poll_tasks(max_attempts=3)
+  # tasks = task_queue.poll_tasks(max_attempts=3)
   # print("batch Index", batch_index)
   # # batch_index += num_of_batches
 
