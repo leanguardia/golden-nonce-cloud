@@ -1,4 +1,5 @@
 import sys, getopt, time
+import util
 from nonce_evaluator import NonceEvaluator 
 
 class NonceFinder(object):
@@ -36,21 +37,8 @@ class NonceFinder(object):
   def binary_format(self, nonce):
     return bin(nonce)[2:]
 
-def arguments(argv, difficulty=None, data="COMSM0010cloud"):
-  try: opts, args = getopt.getopt(argv[1:], "hd:a:", ["difficulty=","data="])
-  except getopt.GetoptError:
-    print('simple_finder.py -d <difficulty> -a <data>')
-    sys.exit(2)
-  for opt, arg in opts:
-    if opt == '-h':
-      print('simple_finder.py -d <difficulty> -a <data>')
-      sys.exit()
-    elif opt in ("-d", "--difficulty"): difficulty = int(arg)
-    elif opt in ("-a", "--data"): data = arg
-  return (difficulty, data)
-
 if __name__ == "__main__":
-  difficulty, data = arguments(sys.argv)
+  difficulty, data = util.arguments(sys.argv)
   print("Data:", data, "| Difficulty:", difficulty)
 
   start_time = time.time()
