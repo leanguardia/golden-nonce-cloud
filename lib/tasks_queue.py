@@ -26,7 +26,25 @@ class TasksQueue(object):
       AttributeNames=['ApproximateNumberOfMessages']
     )
     return int(response['Attributes']['ApproximateNumberOfMessages'])
-  
+
+  def poll_tasks(self, max_attempts=1, wait_time_seconds=1):
+    messages = []
+    attempt_num = 1
+    while(not messages and attempt_num <= max_attempts):
+      if attempt_num > 1: print("Receive Message Attempt (Poll):", attempt_num)
+      response = self.client.receive_message(
+        QueueUrl = self.queue_url,
+        AttributeNames = ['All'],
+        MaxNumberOfMessages = 10,
+        MessageAttributeNames = ['All'],
+        WaitTimeSeconds = wait_time_seconds,
+      )
+      if 'Messages' in response:
+        for message_info in response['Messages']:
+          messages.append(self.__parse_task(message_info))
+      attempt_num += 1
+    return messages if messages else False
+
   def purge(self):
     self.client.purge_queue(QueueUrl=self.queue_url)
 
@@ -55,30 +73,43 @@ class TasksQueue(object):
       'MessageGroupId': 'UniqueID',
     }
 
+  def __parse_task(self, message):
+    attributes = message['MessageAttributes']
+    return {
+      'Body': message['Body'],
+      'ReceiptHandle': message['ReceiptHandle'],
+      'SearchFrom': int(attributes['SearchFrom']['StringValue']),
+      'SearchTo': int(attributes['SearchTo']['StringValue']),
+      'Difficulty': int(attributes['Difficulty']['StringValue']),
+      'Data': attributes['Data']['StringValue'],
+    }
+
 if __name__ == "__main__":
   data = "COMSM0010cloud"
   difficulty = 7
   task_queue = TasksQueue()
 
-  batch_index = 0
-  num_of_tasks = 30
-  num_of_tests = 10000
+  # batch_index = 0
+  # num_of_tasks = 30
+  # num_of_tests = 10000
 
-  num_of_batches = int(num_of_tasks / 10)
-  for index in range(num_of_batches):
-    response = task_queue.send_ten_tasks(data, difficulty, batch_index, num_of_tests)
-    batch_index += 1
-  print("batch Index", batch_index)
-  # batch_index += num_of_batches
+  # num_of_batches = int(num_of_tasks / 10)
+  # for index in range(num_of_batches):
+  #   response = task_queue.send_ten_tasks(data, difficulty, batch_index, num_of_tests)
+  #   batch_index += 1
 
-  num_of_tasks = 10
-  num_of_batches = int(num_of_tasks / 10)
-  times = 3
-  while(times):
-    for index in range(num_of_batches):
-      response = task_queue.send_ten_tasks(data, difficulty, batch_index, num_of_tests)
-      batch_index += 1
-    print("batch Index", batch_index)
-    times -= 1
+  tasks = task_queue.poll_tasks(max_attempts=3)
+  # print("batch Index", batch_index)
+  # # batch_index += num_of_batches
+
+  # num_of_tasks = 10
+  # num_of_batches = int(num_of_tasks / 10)
+  # times = 3
+  # while(times):
+  #   for index in range(num_of_batches):
+  #     response = task_queue.send_ten_tasks(data, difficulty, batch_index, num_of_tests)
+  #     batch_index += 1
+  #   print("batch Index", batch_index)
+  #   times -= 1
 
   # print(response)
