@@ -2,6 +2,7 @@ import time
 from worker import Worker
 from lib.sqs import Sqs
 from lib.tasks_queue import TasksQueue
+from lib.virtual_machine import VirtualMachine
 from app.nonce_evaluator import NonceEvaluator
 
 class Cnd(object):
@@ -16,17 +17,19 @@ class Cnd(object):
   def direct_specification(self, num_of_vms):
     print(f":: Direct Specification :: N = {num_of_vms}")
     sqs = Sqs()
-    # sqs.purge_all()
-    sqs.purge_tasks_queue()
+    self.tasks_queue.purge()
+    sqs.purge_stop_queue()
 
     num_of_tasks = 30
-    threshold = 11
+    threshold = 15
 
     num_of_batches = int(num_of_tasks / 10)
-    self.send_batches(num_of_batches)
+    # self.send_batches(num_of_batches)
 
     num_of_tasks = 20
     num_of_batches = int(num_of_tasks / 10)
+    
+    VirtualMachine.run_machines(number=num_of_vms)
 
     start_time = time.time()
     searching = True
@@ -56,10 +59,7 @@ class Cnd(object):
     elif stop_reason == "EmergencyScram":
       print("Call 999!")
     
-    sqs.delete_stop_message(stop_message["ReceiptHandle"])
-    
-    # sqs.purge_stop_queue()
-    # sqs.purge_all()
+    # VirtualMachine.shutdown_machines()
 
     print("I'm useless xD")
 
@@ -78,7 +78,8 @@ if __name__ == "__main__":
   # print("Data:", data, "| Difficulty:", difficulty)
 
   data = 'COMSM0010cloud'
-  difficulty = 6
+  difficulty = 7
 
   cnd = Cnd(data, difficulty)
-  cnd.direct_specification(1) #
+  # cnd.send_batches(5)
+  cnd.direct_specification(5)
