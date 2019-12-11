@@ -12,7 +12,7 @@ class TasksQueue(object):
     for index in range(task_index, task_index + 10):
       search_from = index * num_of_tests
       search_to = search_from + num_of_tests - 1
-      messages.append(self.build_message(data, difficulty, index, search_from, search_to))
+      messages.append(self.build_message(data, difficulty, index, search_from, search_to, batch_index))
 
     response = self.client.send_message_batch(QueueUrl = self.queue_url, Entries = messages)
     return response
@@ -50,7 +50,7 @@ class TasksQueue(object):
   def delete_message(self, receipt_handle):
     self.client.delete_message(QueueUrl=self.queue_url, ReceiptHandle=receipt_handle)
 
-  def build_message(self, data, difficulty, index, search_from, search_to):
+  def build_message(self, data, difficulty, index, search_from, search_to, batch_index):
     return {
       'Id': str(index),
       'MessageBody': f"D-{difficulty}: Search in {search_from} - {search_to}",
@@ -72,7 +72,7 @@ class TasksQueue(object):
             'DataType': 'Number',
         },
       },
-      'MessageGroupId': 'UniqueID',
+      'MessageGroupId': str(batch_index),
     }
 
   def __parse_task(self, message):
