@@ -4,6 +4,7 @@ class TasksQueue(object):
   def __init__(self):
     self.queue_url = 'https://sqs.us-east-1.amazonaws.com/398055134224/nonce-search-tasks.fifo'
     self.client = boto3.client('sqs', region_name="us-east-1")
+    self.poll_retries_count = 0
 
   def send_ten_tasks(self, data, difficulty, batch_index, num_of_tests):
     messages = []
@@ -11,7 +12,6 @@ class TasksQueue(object):
     for index in range(task_index, task_index + 10):
       search_from = index * num_of_tests
       search_to = search_from + num_of_tests - 1
-      print(search_from, search_to)
       messages.append(self.build_message(data, difficulty, index, search_from, search_to))
 
     response = self.client.send_message_batch(QueueUrl = self.queue_url, Entries = messages)
@@ -28,7 +28,9 @@ class TasksQueue(object):
     messages = []
     attempt_num = 1
     while(not messages and attempt_num <= max_attempts):
-      if attempt_num > 1: print("Receive Message Attempt (Poll):", attempt_num)
+      if attempt_num > 1: 
+        self.poll_retries_count += 1
+        print("Receive Message Attempt (Poll):", attempt_num)
       response = self.client.receive_message(
         QueueUrl = self.queue_url,
         AttributeNames = ['All'],
@@ -40,7 +42,7 @@ class TasksQueue(object):
         for message_info in response['Messages']:
           messages.append(self.__parse_task(message_info))
       attempt_num += 1
-    return messages if messages else False
+    return messages if messages else []
 
   def purge(self):
     self.client.purge_queue(QueueUrl=self.queue_url)
