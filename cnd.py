@@ -2,7 +2,7 @@ import time, sys
 from app import util
 from app.nonce_evaluator import NonceEvaluator
 from lib.sqs import Sqs
-from lib.tasks_queue import TasksQueue
+from remote.tasks_queue import TasksQueue
 from remote.parallel_worker import ParallelWorker
 
 class Cnd(object):
@@ -12,24 +12,21 @@ class Cnd(object):
     self.tasks_queue = TasksQueue()
     
     self.batch_index = 0
-    self.num_of_tests = 10000
+    self.num_of_tests = 25000
 
   def direct_specification(self, num_of_vms, init_tasks, tasks_per_batch):
     print(f":: Direct Specification :: N = {num_of_vms}")
     self.tasks_queue.purge()
     sqs = Sqs()
     sqs.purge_stop_queue()
-    threshold = 15
+    threshold = 75
 
     num_of_batches = int(init_tasks / 10)
     self.send_batches(num_of_batches)
 
     parallel_worker = ParallelWorker(num_of_workers=num_of_vms)
     parallel_worker.run()
-
-    sleep_seconds = 5
-    print(f"Sleeping for {sleep_seconds} seconds.") # change this to at least one running.
-    time.sleep(sleep_seconds)
+    parallel_worker.wait_initialization()
 
     num_of_batches = int(tasks_per_batch / 10)
     start_time = time.time()
@@ -39,7 +36,7 @@ class Cnd(object):
       print("Tasks in queue:", tasks_in_queue)
       if tasks_in_queue < threshold:
         self.send_batches(num_of_batches)
-      stop_message = sqs.stop_search(max_retries=2)
+      stop_message = sqs.stop_search(max_retries=15)
       if stop_message: searching = False
 
     processing_time = time.time() - start_time
@@ -70,13 +67,13 @@ class Cnd(object):
     self.batch_index += 1
 
 if __name__ == "__main__":
-  difficulty, data = util.arguments(sys.argv)
-  print("Data:", data, "| Difficulty:", difficulty)
+  n, difficulty, data = util.arguments(sys.argv)
+  print("N:", n, "Data:", data, "| Difficulty:", difficulty)
 
   cnd = Cnd(data, difficulty)
   # cnd.send_batches()
   cnd.direct_specification(
-    num_of_vms=1,
-    init_tasks=30,
-    tasks_per_batch=10
+    num_of_vms=n,
+    init_tasks=100,
+    tasks_per_batch=50,
   )
