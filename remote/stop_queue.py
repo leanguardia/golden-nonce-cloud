@@ -7,6 +7,9 @@ class StopQueue(object):
     self.queue_url  = 'https://sqs.us-east-1.amazonaws.com/398055134224/stop-search.fifo'
     self.client = boto3.client('sqs', region_name="us-east-1")
 
+  def stop(self):
+    return self.approx_num_of_tasks() > 0
+
   def approx_num_of_tasks(self):
     response = self.client.get_queue_attributes(
       QueueUrl=self.queue_url,
