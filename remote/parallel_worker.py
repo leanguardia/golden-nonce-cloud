@@ -1,9 +1,6 @@
 import boto3
-import logging
-from botocore.exceptions import ClientError
 
 class ParallelWorker(object):
-
   def __init__(self, num_of_workers):
     self.num_of_workers = num_of_workers
     self.ec2 = boto3.client('ec2')

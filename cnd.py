@@ -1,9 +1,9 @@
-import time
-from worker import Worker
+import time, sys
+from app import util
+from app.nonce_evaluator import NonceEvaluator
 from lib.sqs import Sqs
 from lib.tasks_queue import TasksQueue
-from lib.virtual_machine import VirtualMachine
-from app.nonce_evaluator import NonceEvaluator
+from remote.parallel_worker import ParallelWorker
 
 class Cnd(object):
   def __init__(self, data, difficulty):
@@ -14,36 +14,33 @@ class Cnd(object):
     self.batch_index = 0
     self.num_of_tests = 10000
 
-  def direct_specification(self, num_of_vms):
+  def direct_specification(self, num_of_vms, init_tasks, tasks_per_batch):
     print(f":: Direct Specification :: N = {num_of_vms}")
-    sqs = Sqs()
     self.tasks_queue.purge()
+    sqs = Sqs()
     sqs.purge_stop_queue()
-
-    num_of_tasks = 30
     threshold = 15
 
-    num_of_batches = int(num_of_tasks / 10)
-    # self.send_batches(num_of_batches)
+    num_of_batches = int(init_tasks / 10)
+    self.send_batches(num_of_batches)
 
-    num_of_tasks = 20
-    num_of_batches = int(num_of_tasks / 10)
-    
-    VirtualMachine.run_machines(number=num_of_vms)
+    parallel_worker = ParallelWorker(num_of_workers=num_of_vms)
+    parallel_worker.run()
 
+    sleep_seconds = 5
+    print(f"Sleeping for {sleep_seconds} seconds.") # change this to at least one running.
+    time.sleep(sleep_seconds)
+
+    num_of_batches = int(tasks_per_batch / 10)
     start_time = time.time()
     searching = True
     while searching:
-      print("Check: N tasks")
       tasks_in_queue = self.tasks_queue.approx_num_of_tasks() # do this every now and then
       print("Tasks in queue:", tasks_in_queue)
       if tasks_in_queue < threshold:
         self.send_batches(num_of_batches)
-
-      print("Check: Stop Queue")
-      stop_message = sqs.stop_search(max_retries=1)
-      if stop_message:
-        searching = False
+      stop_message = sqs.stop_search(max_retries=2)
+      if stop_message: searching = False
 
     processing_time = time.time() - start_time
     stop_reason = stop_message["StopReason"]
@@ -59,13 +56,12 @@ class Cnd(object):
     elif stop_reason == "EmergencyScram":
       print("Call 999!")
     
-    # VirtualMachine.shutdown_machines()
-
-    print("I'm useless xD")
+    statuses = parallel_worker.status()
+    parallel_worker.shutdown()
+    print("Sending Report ..")
 
   def send_batches(self, num_of_batches):
-    print(f"Sending {num_of_batches} batches of 10 tasks")
-    # print(f"Batch {batch_number} | {num_of_tasks} tasks of size {num_of_tests} from {starting_at} to {ending_at} in {time.time() - start_time} seconds.")
+    print(f"Batch {self.batch_index} | {num_of_batches} tasks of size 10.")
     for index in range(num_of_batches):
       self.send_batch()
 
@@ -74,12 +70,13 @@ class Cnd(object):
     self.batch_index += 1
 
 if __name__ == "__main__":
-  # difficulty, data = arguments(sys.argv)
-  # print("Data:", data, "| Difficulty:", difficulty)
-
-  data = 'COMSM0010cloud'
-  difficulty = 7
+  difficulty, data = util.arguments(sys.argv)
+  print("Data:", data, "| Difficulty:", difficulty)
 
   cnd = Cnd(data, difficulty)
-  # cnd.send_batches(5)
-  cnd.direct_specification(5)
+  # cnd.send_batches()
+  cnd.direct_specification(
+    num_of_vms=1,
+    init_tasks=30,
+    tasks_per_batch=10
+  )
