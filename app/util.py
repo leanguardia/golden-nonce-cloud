@@ -18,5 +18,5 @@ def arguments(argv, num_of_workers=1, difficulty=None, data="COMSM0010cloud"):
     elif opt in ("-d", "--difficulty"): difficulty = int(arg)
     elif opt in ("-a", "--data"): data = arg or data
   if(not difficulty or not data or not num_of_workers):
-    raise ValueError("N and Data are mandatory")
+    raise ValueError("Missing parameters: -n or -d")
   return (num_of_workers, difficulty, data)

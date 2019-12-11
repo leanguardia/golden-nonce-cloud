@@ -38,7 +38,7 @@ class NonceFinder(object):
     return bin(nonce)[2:]
 
 if __name__ == "__main__":
-  difficulty, data = util.arguments(sys.argv)
+  _, difficulty, data = util.arguments(sys.argv)
   print("Data:", data, "| Difficulty:", difficulty)
 
   start_time = time.time()
