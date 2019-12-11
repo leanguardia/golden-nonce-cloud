@@ -24,7 +24,7 @@ class TasksQueue(object):
     )
     return int(response['Attributes']['ApproximateNumberOfMessages'])
 
-  def poll_tasks(self, max_attempts=1, wait_time_seconds=1):
+  def poll_tasks(self, max_attempts=1, wait_time_seconds=0):
     messages = []
     attempt_num = 1
     while(not messages and attempt_num <= max_attempts):
