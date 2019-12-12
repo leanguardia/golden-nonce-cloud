@@ -1,29 +1,49 @@
 # Vergonzosamente Paralelizable
 
-## Local Environment - Celery & RabbitMQ
-### Run a celery worker
-celery -A async_finder worker -n=worker1 --loglevel=info
+## Local Environment
+### Simple Finder
 
-## Cloud Environment - Amazon Web Services
-#### SSH to EC2 instance
-`ssh -i ~/.ssh/aws-key.pem ec2-user@ec2-52-90-79-36.compute-1.amazonaws.com`
+## Cloud Environment
 
+### Setup
+A specific ARN is needed to setup the credentials used by `boto3` in the instances. The default role used for EC2 is "EMR_EC2_DefaultRole". However, it should be verified that this exists and has the right permissions.
 ```
-sudo yum update -y
-sudo yum install python3 -y
-sudo yum install git -y
-sudo amazon-linux-extras install docker -y
-sudo service docker start
+export CND_IAM_PROFILE=EMR_EC2_DefaultRole
 ```
 
-#### Install Dependencies in Amazon Linux EC2 Instance
+Running workers can are acessible by SSH connections. For that it is required to setup a the name of a Public key associated with your AWS account and the name of a SecurtiyGroup that allows SSH inbound connections. 
 ```
-sudo yum update -y
-sudo amazon-linux-extras install docker
-sudo service docker start # run docker service
-sudo usermod -a -G docker ec2-user # allow ec2-user to run docker without sudo
-sudo yum install git -y # intall git
+export CND_SECURITY_GROUP=<MySecurityGroup>
+export CND_KEY_NAME=<MyKeyName>
 ```
 
-#### Some portions of the code have been taken from the following repository:
-https://github.com/awsdocs/aws-doc-sdk-examples/tree/master/python/example_code
+### Run Direct Specification
+```
+cd golden-nonce-cloud
+python cnd.py -d <difficulty> -n <num_of_workers>
+```
+By default the CND works with "COMSM0010cloud" as the data parameter. It can be changed by adding a `-a` flag.
+```
+python cnd.py -d <difficulty> -n <num_of_workers> -a <my_data>
+```
+
+### Emergency Scram
+```
+cd golden-nonce-cloud
+python cnd.py -d <difficulty> -n <num_of_workers>
+```
+By default the CND works with "COMSM0010cloud" as the data parameter. It can be changed by adding a `-a` flag.
+```
+python cnd.py -d <difficulty> -n <num_of_workers> -a <my_data>
+```
+
+### How it works
+1. Find or create queues.
+2. Send X initial tasks
+3. Spin up N instances
+4. Sends more messages when available messages in queue decrease (controled by a threshold).
+5. Constantly verify if there is an stop message.
+
+### TearDown
+- SQS: After use, queues should be deleted manually.
+- EC2: Nothing to do. All workers are shut-down after the searching loop.
