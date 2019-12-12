@@ -26,6 +26,9 @@ def cloud_finder_performance(difficulty):
   plt.xlabel('Number of workers')
   plt.ylabel('Seconds')
   plt.title(f"Difficulty {difficulty}")
+  axes = plt.gca()
+  axes.set_ylim([0, mean_time_by_n_workers['seconds'].max()])
+  plt.grid()
   plt.savefig(f"out/perf-cloud-diff-{difficulty}.png")
 
 if __name__ == "__main__":
