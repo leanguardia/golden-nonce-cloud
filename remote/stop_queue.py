@@ -7,6 +7,7 @@ class StopQueue(object):
     self.client = boto3.client('sqs', region_name="us-east-1")
     self.queue_name = "stop"
     self.queue_url = self.__get_queue_url() or self.__create_queue()
+    print("StopQueue:", self.queue_url)
 
   def stop(self):
     return self.approx_num_of_tasks() > 0
@@ -45,8 +46,10 @@ class StopQueue(object):
       self.__build_golden_nonce_message(nonce, binary_sequence, hexdigest)
     )
 
+  def send_emergency_scram(self):
+    return self.__send_ten_times(self.__build_emergency_scram_message())
+
   def __get_queue_url(self):
-    print("Fetching Queue Url")
     response = self.client.list_queues()
     if 'QueueUrls' in response:
       for url in response['QueueUrls']:
@@ -88,6 +91,17 @@ class StopQueue(object):
       # 'MessageGroupId': ("UniqueID") # ONLY FOR FIFO QUEUE
     }
 
+  def __build_emergency_scram_message(self):
+    return {
+      'MessageBody': (f"Emergency Scram! stoping all workers."),
+      'MessageAttributes': {
+        'StopReason': {
+          'DataType': 'String',
+          'StringValue': "EmergencyScram"
+        },
+      },
+    }
+
   def __make_unique(self, message, identifier):
     copy = message.copy()
     copy['Id'] = str(identifier)
@@ -112,8 +126,8 @@ if __name__ == "__main__":
   stop_queue = StopQueue()
   # print(stop_queue.approx_num_of_tasks())
   # stop_queue.purge()
-  response = stop_queue.send_golden_nonce(56, "00010101010", "000002341234sdfkjadlfjasdlfkj")
-  print(response)
+  # response = stop_queue.send_golden_nonce(56, "00010101010", "000002341234sdfkjadlfjasdlfkj")
+  # print(response)
   # print(stop_queue.poll_stop_message(max_attempts=15, wait_time_seconds=0))
 
-  # sqs.emergency_scram()
+  stop_queue.send_emergency_scram()
