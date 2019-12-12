@@ -4,8 +4,9 @@ import time
 
 class StopQueue(object):
   def __init__(self):
-    self.queue_url  = 'https://sqs.us-east-1.amazonaws.com/398055134224/stop-search.fifo'
     self.client = boto3.client('sqs', region_name="us-east-1")
+    self.queue_name = "stop"
+    self.queue_url = self.__get_queue_url() or self.__create_queue()
 
   def stop(self):
     return self.approx_num_of_tasks() > 0
@@ -43,6 +44,23 @@ class StopQueue(object):
     self.__send_ten_times(
       self.__build_golden_nonce_message(nonce, binary_sequence, hexdigest)
     )
+
+  def __get_queue_url(self):
+    print("Fetching Queue Url")
+    response = self.client.list_queues()
+    if 'QueueUrls' in response:
+      for url in response['QueueUrls']:
+        if self.queue_name in url: return url
+    return None
+
+  def __create_queue(self):
+    print("Creating Queue")
+    response =  self.client.create_queue(
+      QueueName=self.queue_name,
+      Attributes={'DelaySeconds': '0'}
+    )
+    print(response)
+    return response['QueueUrl']
 
   def __send_ten_times(self, message):
     response = self.client.send_message_batch(
