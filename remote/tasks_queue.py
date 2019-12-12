@@ -2,8 +2,9 @@ import boto3
 
 class TasksQueue(object):
   def __init__(self):
-    self.queue_url = 'https://sqs.us-east-1.amazonaws.com/398055134224/nonce-search-tasks.fifo'
     self.client = boto3.client('sqs', region_name="us-east-1")
+    self.queue_name = "tasks.fifo"
+    self.queue_url = self.__get_queue_url() or self.__create_queue()
     self.poll_retries_count = 0
 
   def send_ten_tasks(self, data, difficulty, batch_index, num_of_tests):
@@ -75,6 +76,25 @@ class TasksQueue(object):
       'MessageGroupId': str(batch_index),
     }
 
+  def __get_queue_url(self):
+    print("Fetching Queue Url")
+    response = self.client.list_queues()
+    if 'QueueUrls' in response:
+      for url in response['QueueUrls']:
+        if self.queue_name in url: return url
+    return None
+
+  def __create_queue(self):
+    print("Creating Queue")
+    return self.client.create_queue(
+      QueueName=self.queue_name,
+      Attributes={
+        'DelaySeconds': '0',
+        'FifoQueue': 'true',
+        'ContentBasedDeduplication': 'true',
+      }
+    )['QueueUrl']
+
   def __parse_task(self, message):
     attributes = message['MessageAttributes']
     return {
@@ -91,14 +111,14 @@ if __name__ == "__main__":
   difficulty = 7
   task_queue = TasksQueue()
 
-  batch_index = 0
-  num_of_tasks = 10
-  num_of_tests = 10000
+  # batch_index = 0
+  # num_of_tasks = 10
+  # num_of_tests = 10000
 
-  num_of_batches = int(num_of_tasks / 10)
-  for index in range(num_of_batches):
-    response = task_queue.send_ten_tasks(data, difficulty, batch_index, num_of_tests)
-    batch_index += 1
+  # num_of_batches = int(num_of_tasks / 10)
+  # for index in range(num_of_batches):
+  #   response = task_queue.send_ten_tasks(data, difficulty, batch_index, num_of_tests)
+  #   batch_index += 1
 
   # tasks = task_queue.poll_tasks(max_attempts=3)
   # print("batch Index", batch_index)
