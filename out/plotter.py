@@ -10,11 +10,12 @@ def simple_finder_performance():
   is_finder_2 = data['finder'] == 2
   local_2 = data[is_local & is_finder_2]
   difficulty = range(1, 8)
-  plt.plot(difficulty, local_1['seconds'], label="Finder 1")
-  plt.plot(difficulty, local_2['seconds'], label="Finder 2")
+  plt.plot(difficulty, local_2['seconds'], label="Prepend Zeros")
+  plt.plot(difficulty, local_1['seconds'], label="Increase Sequence Length")
   plt.xlabel('Difficulty')
   plt.ylabel('Seconds')
-  plt.title("Local Finders")
+  plt.title("Simple Finder")
+  plt.grid()
   plt.legend()
   plt.savefig("out/performance-local-finder.png")
 
@@ -25,9 +26,9 @@ def cloud_finder_performance(difficulty):
   plt.plot(range(1, 8), mean_time_by_n_workers['seconds'])
   plt.xlabel('Number of workers')
   plt.ylabel('Seconds')
-  plt.title(f"Difficulty {difficulty}")
+  plt.title(f"Cloud Search - Difficulty {difficulty}")
   axes = plt.gca()
-  axes.set_ylim([0, mean_time_by_n_workers['seconds'].max()])
+  axes.set_ylim([0, mean_time_by_n_workers['seconds'].max() + 10])
   plt.grid()
   plt.savefig(f"out/perf-cloud-diff-{difficulty}.png")
 
