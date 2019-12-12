@@ -11,7 +11,7 @@ class ParallelWorker(object):
 
   def run(self):
     print(f"Initializing {self.num_of_workers} worker(s)")
-    print("KeyName:", self.key_name, " - SecurityGroup:", self.security_group, " - IAM Profile:", self.iam_profile)
+    self.__report_environmental_variables()
     response = self.ec2.run_instances(
       ImageId = 'ami-015dd0c2828bf03ff',
       InstanceType = 't2.micro',
@@ -55,6 +55,12 @@ class ParallelWorker(object):
       for instance_info in reservations[0]['Instances']:
         statuses.append(instance_info['State']['Name'])
     return statuses
+
+  def __report_environmental_variables(self):
+    print("Using environmental variables:")
+    print(" - IAM Profile:", self.iam_profile)
+    print(" - KeyName:", self.key_name)
+    print(" - SecurityGroup:", self.security_group)
 
 if __name__ == '__main__':
 

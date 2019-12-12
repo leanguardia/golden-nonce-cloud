@@ -5,6 +5,7 @@ class TasksQueue(object):
     self.client = boto3.client('sqs', region_name="us-east-1")
     self.queue_name = "tasks.fifo"
     self.queue_url = self.__get_queue_url() or self.__create_queue()
+    print("TasksQueue:", self.queue_url)
     self.poll_retries_count = 0
 
   def send_ten_tasks(self, data, difficulty, batch_index, num_of_tests):
@@ -77,7 +78,6 @@ class TasksQueue(object):
     }
 
   def __get_queue_url(self):
-    print("Fetching Queue Url")
     response = self.client.list_queues()
     if 'QueueUrls' in response:
       for url in response['QueueUrls']:
