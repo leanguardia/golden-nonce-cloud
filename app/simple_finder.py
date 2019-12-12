@@ -2,7 +2,7 @@ import sys, getopt, time
 import util
 from nonce_evaluator import NonceEvaluator 
 
-class NonceFinder(object):
+class SimpleFinder(object):
   def find_by_zero_prepend(self, data, difficulty):
     golden_nonce = None
     max_sequence_length = 32
@@ -24,14 +24,12 @@ class NonceFinder(object):
       upper_limit = 2 ** sequence_length
       nonce = 0
       while (not golden_nonce and nonce < upper_limit):
-        binary_sequence = self.binary_format(nonce, sequence_length).rjust(sequence_length, '0')
-        # print(sequence_length, nonce, binary_sequence)
+        binary_sequence = self.binary_format(nonce).rjust(sequence_length, '0')
         evaluator = NonceEvaluator(data, binary_sequence, difficulty)
         if (evaluator.valid_nonce()):
           golden_nonce = binary_sequence
         nonce += 1
       sequence_length += 1
-      print(sequence_length, upper_limit, "trails")
     return (golden_nonce, evaluator.hexdigest)
 
   def binary_format(self, nonce):
@@ -42,11 +40,10 @@ if __name__ == "__main__":
   print("Data:", data, "| Difficulty:", difficulty)
 
   start_time = time.time()
-  binary_sequence, hexdigest = NonceFinder().find_by_zero_prepend(data, difficulty)
+  binary_sequence, hexdigest = SimpleFinder().find_by_zero_prepend(data, difficulty)
+  # binary_sequence, hexdigest = SimpleFinder().find_by_increment(data, difficulty)
   processing_time = time.time() - start_time
   nonce = int(binary_sequence, 2)
   print("Golden Nonce:", nonce, "|", binary_sequence +"("+str(len(binary_sequence))+")")
   print("Processing time: {0:.3f} s.".format(processing_time))
   print("Hexdigest", hexdigest)
-
-# TODO: CHANGE EVALUATOR TO CHECK BITS, NO HEX DIGITS
