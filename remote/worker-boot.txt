@@ -1,0 +1,6 @@
+#!/bin/bash
+echo "--> Booting worker"
+cd /home/ec2-user/
+git clone https://github.com/leanguardia/golden-nonce-cloud
+chown -R ec2-user /home/ec2-user/golden-nonce-cloud/
+echo "--> END Booting worker"
