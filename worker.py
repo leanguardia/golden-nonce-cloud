@@ -24,9 +24,9 @@ class Worker(object):
     max_sequence_length = 32
 
     while(searching):
-      tasks = self.tasks_queue.poll_tasks(max_attempts=10, wait_time_seconds=1)
-      msj = f"Processing {len(tasks)} tasks"; print(msj); logger.info(msj)
-      logger.info(f"Processing {len(tasks)} tasks")
+      tasks = self.tasks_queue.poll_tasks(max_attempts=1, wait_time_seconds=1)
+      msj = f"Retrieved {len(tasks)} tasks"; print(msj); logger.info(msj)
+      logger.info(f"Retrieved {len(tasks)} tasks")
       while(searching and tasks):
         task = tasks[0]
         nonce, search_to, difficulty, data = self.unwrap_task(task)
