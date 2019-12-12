@@ -41,7 +41,7 @@ class StopQueue(object):
     return self.__parse_stop_message(response['Messages'][0]) if message else False
 
   def send_golden_nonce(self, nonce, binary_sequence, hexdigest):
-    self.__send_ten_times(
+    return self.__send_ten_times(
       self.__build_golden_nonce_message(nonce, binary_sequence, hexdigest)
     )
 
@@ -63,7 +63,7 @@ class StopQueue(object):
     return response['QueueUrl']
 
   def __send_ten_times(self, message):
-    response = self.client.send_message_batch(
+    return self.client.send_message_batch(
       QueueUrl = self.queue_url,
       Entries = list(self.__make_unique(message, index) for index in range(10))
     )
@@ -85,7 +85,7 @@ class StopQueue(object):
             'StringValue': hexdigest, 'DataType': 'String',
           },
       },
-      'MessageGroupId': ("UniqueID")
+      # 'MessageGroupId': ("UniqueID") # ONLY FOR FIFO QUEUE
     }
 
   def __make_unique(self, message, identifier):
@@ -112,7 +112,8 @@ if __name__ == "__main__":
   stop_queue = StopQueue()
   # print(stop_queue.approx_num_of_tasks())
   # stop_queue.purge()
-  # stop_queue.send_golden_nonce(56, "00010101010", "000002341234sdfkjadlfjasdlfkj")
+  response = stop_queue.send_golden_nonce(56, "00010101010", "000002341234sdfkjadlfjasdlfkj")
+  print(response)
   # print(stop_queue.poll_stop_message(max_attempts=15, wait_time_seconds=0))
 
   # sqs.emergency_scram()
