@@ -1,8 +1,18 @@
 import datetime
+import os
+import logging
 from remote.tasks_queue import TasksQueue
 from remote.stop_queue import StopQueue
 from app.nonce_evaluator import NonceEvaluator
-import os
+
+LOG_FORMAT = "%(levelname)s %(message)s"
+logging.basicConfig(
+  filename = "worker.log",
+  level = logging.INFO,
+  format = LOG_FORMAT,
+  filemode='w',
+)
+logger = logging.getLogger()
 
 class Worker(object):
   def __init__(self):
@@ -14,13 +24,15 @@ class Worker(object):
     max_sequence_length = 32
 
     while(searching):
-      tasks = self.tasks_queue.poll_tasks(max_attempts=10, wait_time_seconds=0)
-      print(f"Processing {len(tasks)} tasks")
+      tasks = self.tasks_queue.poll_tasks(max_attempts=10, wait_time_seconds=1)
+      msj = f"Processing {len(tasks)} tasks"; print(msj); logger.info(msj)
+      logger.info(f"Processing {len(tasks)} tasks")
       while(searching and tasks):
         task = tasks[0]
         nonce, search_to, difficulty, data = self.unwrap_task(task)
 
-        print(task["Body"])
+        print(task['Body'])
+        logger.info(task['Body'])
         while(searching and nonce <= search_to):
           binary_sequence = bin(nonce)[2:]
           
@@ -50,7 +62,6 @@ class Worker(object):
     )
 
 if __name__ == "__main__":
-  print("Worker starting at", datetime.datetime.now())
+  logger.info("Worker starting at " + str(datetime.datetime.now()))
   Worker().run()
-  print("Worker stopping at", datetime.datetime.now())
-  # os.system("shutdown /s /t 1")
+  logger.info("Worker stopping at " + str(datetime.datetime.now()))
