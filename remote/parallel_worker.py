@@ -4,23 +4,23 @@ class ParallelWorker(object):
   def __init__(self, num_of_workers):
     self.num_of_workers = num_of_workers
     self.ec2 = boto3.client('ec2')
-    self.key_name = os.environ.get('CND_KEY_NAME')
-    self.security_group = os.environ.get('CND_SECURITY_GROUP')
-    self.iam_profile = os.environ.get('CND_IAM_PROFILE')
+    self.iam_profile = os.environ.get('CND_IAM_PROFILE') or "EMR_EC2_DefaultRole"
     self.instance_ids = []
 
   def run(self):
     print(f"Initializing {self.num_of_workers} worker(s)")
-    self.__report_environmental_variables()
+    print(" - IAM Profile:", self.iam_profile)
     response = self.ec2.run_instances(
       ImageId = 'ami-015dd0c2828bf03ff',
       InstanceType = 't2.micro',
       MinCount = self.num_of_workers,
       MaxCount = self.num_of_workers,
       UserData = open("remote/worker-boot.txt").read(),
-      KeyName = self.key_name,
-      SecurityGroups = [self.security_group],
       IamInstanceProfile = { 'Name': self.iam_profile },
+      TagSpecifications=[{
+        'ResourceType': 'instance',
+        'Tags': [{ 'Key': 'Purpose', 'Value': 'Worker' }],
+      }],
     )
     for machine_info in response["Instances"]:
       self.instance_ids.append(machine_info['InstanceId'])
@@ -56,14 +56,7 @@ class ParallelWorker(object):
         statuses.append(instance_info['State']['Name'])
     return statuses
 
-  def __report_environmental_variables(self):
-    print("Using environmental variables:")
-    print(" - IAM Profile:", self.iam_profile)
-    print(" - KeyName:", self.key_name)
-    print(" - SecurityGroup:", self.security_group)
-
 if __name__ == '__main__':
-
   parallel_worker = ParallelWorker(num_of_workers=1)
   parallel_worker.run()
   # parallel_worker.wait_initialization()
